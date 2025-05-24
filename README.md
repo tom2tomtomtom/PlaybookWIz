@@ -160,6 +160,8 @@ flake8                       # Lint code
 
 ## 🧪 Testing
 
+Run `.tools/codex/setup.sh` before executing tests to ensure all dependencies are installed.
+
 ### Frontend Tests
 - **Unit Tests**: Jest + React Testing Library
 - **E2E Tests**: Playwright

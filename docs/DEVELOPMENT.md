@@ -59,6 +59,7 @@ PlaybookWiz uses a modern full-stack architecture with AI-powered intelligence:
    # Frontend environment (.env.local)
    NEXT_PUBLIC_API_URL=http://localhost:8000
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_SENTRY_DSN=your-sentry-dsn-here
    
    # Backend environment (backend/.env)
    ANTHROPIC_API_KEY=your-anthropic-api-key-here
@@ -66,6 +67,7 @@ PlaybookWiz uses a modern full-stack architecture with AI-powered intelligence:
    DATABASE_URL=postgresql://playbookwiz:password@localhost:5432/playbookwiz
    MONGODB_URL=mongodb://localhost:27017/playbookwiz
    REDIS_URL=redis://localhost:6379
+   SENTRY_DSN=your-sentry-dsn-here
    ```
 
 ### Quick Start
@@ -308,11 +310,11 @@ Ensure all required environment variables are set:
 ### Logging
 
 ```python
-import logging
-logger = logging.getLogger(__name__)
+from structlog import get_logger
 
-# Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
-logger.info("Processing document", extra={"document_id": doc_id})
+logger = get_logger(__name__)
+
+logger.info("processing_document", document_id=doc_id)
 ```
 
 ### Performance Monitoring
@@ -324,15 +326,15 @@ logger.info("Processing document", extra={"document_id": doc_id})
 
 ### Error Tracking
 
-- Sentry integration for error tracking
-- Structured logging with context
+- Sentry integration for error monitoring (`SENTRY_DSN`)
+- Structured logging with context (structlog)
 - User feedback collection
 
 ## 🔐 Security Considerations
 
 1. **API Security**
    - JWT authentication
-   - Rate limiting
+   - Rate limiting with SlowAPI and Redis
    - Input validation
    - CORS configuration
 

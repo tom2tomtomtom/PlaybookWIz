@@ -172,6 +172,9 @@ Run `.tools/codex/setup.sh` before executing tests to ensure all dependencies ar
 - **Integration Tests**: pytest with test database
 - **API Tests**: pytest + httpx
 
+### Continuous Integration
+Automated GitHub Actions run the full test suite on every pull request.
+
 ## 🚢 Deployment
 
 ### Docker Deployment

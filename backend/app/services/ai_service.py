@@ -100,6 +100,54 @@ class AIService:
         """Cleanup AI service resources."""
         # Close any open connections if needed
         logger.info("AI service cleanup completed")
+
+    async def get_document_content(
+        self,
+        document_id: UUID,
+        page: Optional[int] = None,
+        section: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieve processed document content."""
+        try:
+            cache_key = f"document_content:{document_id}"
+            cached = await self.redis.get(cache_key)
+            if cached:
+                content = json.loads(cached)
+            else:
+                collection = self.mongodb["document_content"]
+                record = await collection.find_one({"document_id": str(document_id)})
+                if not record:
+                    return None
+                content = record.get("content", {})
+                await self.redis.setex(
+                    cache_key,
+                    settings.CACHE_TTL,
+                    json.dumps(content, default=str),
+                )
+
+            if page is not None:
+                for p in content.get("pages", []):
+                    if p.get("page_number") == page:
+                        return p
+                return None
+
+            if section:
+                return content.get(section)
+
+            return content
+        except Exception as e:
+            logger.error(f"Error retrieving document content: {e}")
+            return None
+
+    async def delete_document_embeddings(self, document_id: UUID):
+        """Delete stored embeddings and cached content for a document."""
+        try:
+            await self.redis.delete(f"document_content:{document_id}")
+            await self.mongodb["document_embeddings"].delete_many({"document_id": str(document_id)})
+            await self.mongodb["brand_analysis"].delete_many({"document_id": str(document_id)})
+            await self.mongodb["document_content"].delete_many({"document_id": str(document_id)})
+        except Exception as e:
+            logger.error(f"Error deleting document data: {e}")
     
     async def process_document_content(
         self,
@@ -155,6 +203,14 @@ class AIService:
                 "document_id": str(document_id),
                 "analysis": brand_analysis,
             })
+
+            # Persist full processed content in MongoDB for later analysis
+            content_collection = self.mongodb["document_content"]
+            await content_collection.update_one(
+                {"document_id": str(document_id)},
+                {"$set": {"content": content}},
+                upsert=True,
+            )
             
             # Cache processed content
             await self.redis.setex(

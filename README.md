@@ -198,6 +198,9 @@ See `.env.example` and `backend/.env.example` for required environment variables
 - Data encryption at rest and in transit
 - GDPR and CCPA compliance
 - Comprehensive audit logging
+- Rate limiting with SlowAPI
+- Structured logging via structlog
+- Error monitoring with Sentry
 
 ## 🤝 Contributing
 

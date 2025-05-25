@@ -38,7 +38,8 @@
   "author": "PlaybookWiz Team",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "jest": "^29.0.0"
   },
   "engines": {
     "node": ">=18.0.0",

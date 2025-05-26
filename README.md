@@ -220,3 +220,30 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🆘 Support
 
 For support, email support@playbookwiz.com or create an issue in the repository.
+
+---
+
+## 🚀 Deploying to Railway
+
+### Prerequisites
+- Ensure you have Dockerfiles in both `/backend` and `/frontend` (already included).
+- Configure your environment variables in Railway using `.env.example` as a reference for both services.
+
+### Steps
+1. **Push your latest code to GitHub.**
+2. **Create two new Railway projects:** one for the backend and one for the frontend (or use Railway Monorepo support).
+3. **For each project:**
+   - Connect your GitHub repo and select the correct subdirectory (`/backend` or `/frontend`).
+   - Railway will auto-detect the Dockerfile and build each service.
+   - Set environment variables in the Railway dashboard for each service, referencing `.env.example`.
+   - For the backend, expose port `8000`. For the frontend, expose port `3000`.
+4. **(Optional)**: Add PostgreSQL, MongoDB, and Redis as Railway plugins, and update your environment variables accordingly.
+5. **Deploy!**
+
+### Example Dockerfile Usage
+- Backend: Python FastAPI served by Uvicorn, port 8000
+- Frontend: Next.js served by `next start`, port 3000
+
+For more details, see the [Railway Docs](https://docs.railway.app/).
+
+---

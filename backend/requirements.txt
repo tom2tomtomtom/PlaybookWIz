@@ -78,7 +78,7 @@ mypy==1.7.1
 emails==0.6
 
 # File handling
-magic==0.4.27
+python-magic
 
 # Rate limiting
 slowapi==0.1.9

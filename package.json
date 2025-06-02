@@ -12,6 +12,7 @@
     "test": "npm run test:frontend && npm run test:backend",
     "test:frontend": "cd frontend && npm test",
     "test:backend": "cd backend && pytest",
+    "test:coverage": "npm run test:frontend -- --coverage && cd backend && pytest --cov=app --cov-report=html",
     "lint": "npm run lint:frontend && npm run lint:backend",
     "lint:frontend": "cd frontend && npm run lint",
     "lint:backend": "cd backend && flake8 .",
@@ -23,6 +24,10 @@
     "setup:backend": "cd backend && pip install -r requirements.txt",
     "docker:dev": "docker-compose up --build",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up --build -d",
+    "docker:monitoring": "cd monitoring && docker-compose -f docker-compose.monitoring.yml up -d",
+    "deploy:prod": "chmod +x scripts/deploy-production.sh && ./scripts/deploy-production.sh",
+    "validate:prod": "chmod +x scripts/validate-production.sh && ./scripts/validate-production.sh",
+    "health:check": "./scripts/validate-production.sh backend",
     "db:migrate": "cd backend && alembic upgrade head",
     "db:reset": "cd backend && alembic downgrade base && alembic upgrade head"
   },

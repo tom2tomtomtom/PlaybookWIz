@@ -1,0 +1,66 @@
+[build]
+  # Build command for the frontend
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
+  
+  # Directory to publish (Next.js output)
+  publish = "frontend/out"
+  
+  # Base directory for the build
+  base = "."
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "18"
+  
+  # NPM version
+  NPM_VERSION = "9"
+  
+  # Next.js configuration
+  NEXT_TELEMETRY_DISABLED = "1"
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/api/*"
+  to = "https://your-backend-api.herokuapp.com/api/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
+
+# Cache static assets
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Environment-specific settings
+[context.production]
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
+
+[context.deploy-preview]
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
+
+[context.branch-deploy]
+  command = "cd frontend && npm install --legacy-peer-deps && npm run build"
+
+# Functions (if you want to use Netlify Functions for some backend functionality)
+[functions]
+  directory = "netlify/functions"

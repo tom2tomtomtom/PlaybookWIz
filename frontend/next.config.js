@@ -1,8 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable static export for deployment
+  output: 'export',
+  trailingSlash: true,
+  distDir: 'out',
+
   images: {
     domains: ['localhost', 'playbookwiz.com'],
     formats: ['image/webp', 'image/avif'],
+    unoptimized: true, // Required for static export
   },
   async rewrites() {
     return [

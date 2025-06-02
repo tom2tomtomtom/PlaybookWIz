@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+// import AppLayout from '@/components/layout/AppLayout';
+// import OnboardingFlow from '@/components/onboarding/OnboardingFlow';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
@@ -11,6 +14,13 @@ export default function DashboardPage() {
   const [claudeKey, setClaudeKey] = useState('');
   const [showKeys, setShowKeys] = useState(false);
   const [keysSaved, setKeysSaved] = useState(false);
+  // const [showOnboarding, setShowOnboarding] = useState(false);
+  // const [isFirstVisit, setIsFirstVisit] = useState(false);
+  const [systemStats, setSystemStats] = useState({
+    documentsCount: 0,
+    chatSessions: 0,
+    lastActivity: null as string | null,
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -22,20 +32,72 @@ export default function DashboardPage() {
         return;
       }
       setUser(user);
+
+      // Check if first visit
+      // const hasVisited = localStorage.getItem('has_visited_dashboard');
+      // if (!hasVisited) {
+      //   setIsFirstVisit(true);
+      //   setShowOnboarding(true);
+      //   localStorage.setItem('has_visited_dashboard', 'true');
+      // }
+
+      // Load saved API keys
+      const savedOpenAI = localStorage.getItem('openai_api_key');
+      const savedClaude = localStorage.getItem('claude_api_key');
+      if (savedOpenAI) setOpenaiKey(savedOpenAI);
+      if (savedClaude) setClaudeKey(savedClaude);
+
+      // Load system stats
+      await loadSystemStats();
     };
 
     checkUser();
   }, [router]);
 
-  const handleSaveKeys = async () => {
+  const loadSystemStats = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${backendUrl}/api/v1/stats`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
 
-      if (openaiKey) {
-        await fetch(`${backendUrl}/api/v1/auth/api-keys`, {
+      if (response.ok) {
+        const stats = await response.json();
+        setSystemStats({
+          documentsCount: stats.documents_uploaded || 0,
+          chatSessions: stats.chat_sessions || 0,
+          lastActivity: stats.last_activity || new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('Error loading system stats:', error);
+    }
+  };
+
+  const handleSaveKeys = async () => {
+    if (!openaiKey.trim() && !claudeKey.trim()) {
+      toast.error('Please enter at least one API key');
+      return;
+    }
+
+    const loadingToast = toast.loading('Saving API keys...');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to save API keys');
+        return;
+      }
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
+      if (openaiKey.trim()) {
+        const response = await fetch(`${backendUrl}/api/v1/auth/api-keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -43,13 +105,19 @@ export default function DashboardPage() {
           },
           body: JSON.stringify({
             provider: 'openai',
-            api_key: openaiKey
+            api_key: openaiKey.trim()
           })
         });
+
+        if (!response.ok) {
+          throw new Error('Failed to save OpenAI API key');
+        }
+
+        localStorage.setItem('openai_api_key', openaiKey.trim());
       }
 
-      if (claudeKey) {
-        await fetch(`${backendUrl}/api/v1/auth/api-keys`, {
+      if (claudeKey.trim()) {
+        const response = await fetch(`${backendUrl}/api/v1/auth/api-keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -57,15 +125,25 @@ export default function DashboardPage() {
           },
           body: JSON.stringify({
             provider: 'claude',
-            api_key: claudeKey
+            api_key: claudeKey.trim()
           })
         });
+
+        if (!response.ok) {
+          throw new Error('Failed to save Claude API key');
+        }
+
+        localStorage.setItem('claude_api_key', claudeKey.trim());
       }
 
+      toast.dismiss(loadingToast);
+      toast.success('API keys saved successfully!');
       setKeysSaved(true);
       setTimeout(() => setKeysSaved(false), 3000);
     } catch (error) {
+      toast.dismiss(loadingToast);
       console.error('Error saving API keys:', error);
+      toast.error('Failed to save API keys. Please try again.');
     }
   };
 
@@ -75,7 +153,11 @@ export default function DashboardPage() {
   };
 
   if (!user) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
   }
 
   return (
@@ -92,7 +174,7 @@ export default function DashboardPage() {
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-gray-700">Welcome, {user.email}</span>
+              <span className="text-gray-700">Welcome, {user.email?.split('@')[0] || user.email}</span>
               <button
                 onClick={handleSignOut}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
@@ -108,15 +190,29 @@ export default function DashboardPage() {
         <div className="px-4 py-6 sm:px-0">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
-          {/* API Key Configuration */}
-          <div className="bg-white overflow-hidden shadow rounded-lg mb-8">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                API Key Configuration
-              </h3>
-              <p className="text-sm text-gray-600 mb-6">
-                Configure your AI provider API keys to enable full functionality. Keys are stored locally in your browser.
-              </p>
+        {/* API Key Configuration */}
+        <div id="api-keys" className="bg-white overflow-hidden shadow rounded-lg mb-8">
+          <div className="px-4 py-5 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  AI Provider Configuration
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Configure your AI provider API keys to enable intelligent document processing and Q&A.
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                {(openaiKey || claudeKey) && (
+                  <div className="flex items-center text-green-600">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-sm">Configured</span>
+                  </div>
+                )}
+              </div>
+            </div>
               
               <div className="space-y-4">
                 <div>

@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+// import AppLayout from '@/components/layout/AppLayout';
+import toast from 'react-hot-toast';
 
 interface Source {
   passage: string;

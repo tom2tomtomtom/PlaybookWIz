@@ -32,8 +32,10 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+
       if (openaiKey) {
-        await fetch('http://localhost:8000/api/v1/auth/api-keys', {
+        await fetch(`${backendUrl}/api/v1/auth/api-keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -47,7 +49,7 @@ export default function DashboardPage() {
       }
 
       if (claudeKey) {
-        await fetch('http://localhost:8000/api/v1/auth/api-keys', {
+        await fetch(`${backendUrl}/api/v1/auth/api-keys`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

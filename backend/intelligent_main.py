@@ -48,6 +48,12 @@ class APIKeyRequest(BaseModel):
     provider: str  # 'openai' or 'claude'
     api_key: str
 
+class AdminAPIKeyRequest(BaseModel):
+    user_email: str
+    provider: str  # 'openai' or 'claude'
+    api_key: str
+    admin_secret: str
+
 class DocumentSearchRequest(BaseModel):
     query: str
     document_ids: List[str] = []
@@ -159,18 +165,59 @@ async def save_api_key(request: APIKeyRequest, user = Depends(get_current_user))
     try:
         logger.info(f"Saving API key for user {user.id}, provider: {request.provider}")
         encrypted_key = cipher_suite.encrypt(request.api_key.encode()).decode()
-        
+
         # Upsert API key
         result = supabase.table("user_api_keys").upsert({
             "user_id": user.id,
             "provider": request.provider,
             "encrypted_key": encrypted_key
         }, on_conflict="user_id,provider").execute()
-        
+
         logger.info(f"API key saved successfully")
         return {"message": f"{request.provider} API key saved successfully"}
     except Exception as e:
         logger.error(f"Error saving API key: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save API key")
+
+@app.post("/api/v1/admin/save-user-api-key")
+async def admin_save_user_api_key(request: AdminAPIKeyRequest):
+    """Admin endpoint to save API key for a user by email"""
+    try:
+        # Verify admin secret
+        admin_secret = os.getenv("ADMIN_SECRET", "playbookwiz-admin-secret-2024")
+        if request.admin_secret != admin_secret:
+            raise HTTPException(status_code=403, detail="Invalid admin secret")
+
+        # Find user by email
+        user_result = supabase.auth.admin.list_users()
+        target_user = None
+        for user in user_result:
+            if user.email == request.user_email:
+                target_user = user
+                break
+
+        if not target_user:
+            raise HTTPException(status_code=404, detail=f"User with email {request.user_email} not found")
+
+        logger.info(f"Admin saving API key for user {target_user.id} ({request.user_email}), provider: {request.provider}")
+        encrypted_key = cipher_suite.encrypt(request.api_key.encode()).decode()
+
+        # Upsert API key
+        result = supabase.table("user_api_keys").upsert({
+            "user_id": target_user.id,
+            "provider": request.provider,
+            "encrypted_key": encrypted_key
+        }, on_conflict="user_id,provider").execute()
+
+        logger.info(f"Admin API key saved successfully for {request.user_email}")
+        return {
+            "message": f"{request.provider} API key saved successfully for {request.user_email}",
+            "user_id": target_user.id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error saving admin API key: {e}")
         raise HTTPException(status_code=500, detail="Failed to save API key")
 
 @app.post("/api/v1/documents/upload")
